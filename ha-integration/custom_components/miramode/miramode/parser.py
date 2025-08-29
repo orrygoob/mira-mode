@@ -26,15 +26,13 @@ class BleakCharacteristicMissing(BleakError):
 class BleakServiceMissing(BleakError):
     """Raised when a service is missing."""
 
-from .const import (
-    BQ_TO_PCI_MULTIPLIER,
-)
+MIRA_CHARACTERISTIC_UUID_READ = "bccb0003-ca66-11e5-88a4-0002a5d5c51b"
+MIRA_CHARACTERISTIC_UUID_WRITE = "bccb0002-ca66-11e5-88a4-0002a5d5c51b"
 
-RADON_CHARACTERISTIC_UUID_READ = "00001525-0000-1000-8000-00805f9b34fb"
-RADON_CHARACTERISTIC_UUID_WRITE = "00001524-0000-1000-8000-00805f9b34fb"
-RADON_CHARACTERISTIC_UUID_READ_OLDVERSION = "00001525-1212-efde-1523-785feabcd123"
-RADON_CHARACTERISTIC_UUID_WRITE_OLDVERSION = "00001524-1212-efde-1523-785feabcd123"
-WRITE_VALUE = b"\x50"
+# Format - device_id + uuid_command + temperature + shower + bath = 01|87050101|e0|64|00 for shower
+MIRA_COMMAND = "87050101"
+# Format - device_id + uuid_trigger_notif = 01|0700458A send to UUID_WRITE to trigger a notif on UUID_READ
+MIRA_TRIGGER_NOTIF = "0700458A"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,6 +46,8 @@ class MiraModeDevice:
     name: str = ""
     identifier: str = ""
     address: str = ""
+    device_id: int = -1
+    client_id: int = -1
     sensors: dict[str, str | float | None] = dataclasses.field(
         default_factory=lambda: {}
     )
@@ -64,15 +64,13 @@ class MiraModeBluetoothDeviceData:
     def __init__(
         self,
         logger: Logger,
-        elevation: int | None = None,
-        is_metric: bool = True,
-        voltage: tuple[float, float] = (2.4, 3.2),
+        client_id: int = 32683,
+        device_id: int = 2,
     ):
         super().__init__()
         self.logger = logger
-        self.is_metric = is_metric
-        self.elevation = elevation
-        self.voltage = voltage
+        self.client_id = client_id
+        self.device_id = device_id
         self._command_data = None
         self._event = None
 
@@ -110,243 +108,44 @@ class MiraModeBluetoothDeviceData:
         return cast(WrapFuncType, _async_disconnect_on_missing_services_wrap)
 
     @disconnect_on_missing_services
-    async def _get_radon(self, client: BleakClient, device: MiraModeDevice) -> MiraModeDevice:
+    async def _get_state(self, client: BleakClient, device: MiraModeDevice) -> MiraModeDevice:
 
         self._event = asyncio.Event()
         try:
             await client.start_notify(
-                RADON_CHARACTERISTIC_UUID_READ, self.notification_handler
+                MIRA_CHARACTERISTIC_UUID_READ, self.notification_handler
             )
         except:
-            self.logger.warn("_get_radon Bleak error 1")
+            self.logger.warn("_get_state Bleak error 1")
 
-        await client.write_gatt_char(RADON_CHARACTERISTIC_UUID_WRITE, WRITE_VALUE)
+        await client.write_gatt_char(MIRA_CHARACTERISTIC_UUID_WRITE, bytes([device.device_id]) + bytes.fromhex(MIRA_TRIGGER_NOTIF))
 
-        # Wait for up to fice seconds to see if a
+        # Wait for up to 10 seconds to see if a
         # callback comes in.
         try:
             await asyncio.wait_for(self._event.wait(), 10)
         except asyncio.TimeoutError:
             self.logger.warn("Timeout getting command data.")
         except:
-            self.logger.warn("_get_radon Bleak error 2")
+            self.logger.warn("_get_state Bleak error 2")
 
-        await client.stop_notify(RADON_CHARACTERISTIC_UUID_READ)
+        await client.stop_notify(MIRA_CHARACTERISTIC_UUID_READ)
 
-        if self._command_data is not None and len(self._command_data) == 12:
-            RadonValueBQ = struct.unpack("<H", self._command_data[2:4])[0]
-            device.sensors["radon"] = round(float(RadonValueBQ),2)
-            if not self.is_metric:
-                device.sensors["radon"] = round(float(RadonValueBQ) * BQ_TO_PCI_MULTIPLIER,2)
-
-            RadonValueBQ = struct.unpack("<H", self._command_data[4:6])[0]
-            device.sensors["radon_1day_level"] = round(float(RadonValueBQ),2)
-            if not self.is_metric:
-                device.sensors["radon_1day_level"] = (
-                    round(float(RadonValueBQ) * BQ_TO_PCI_MULTIPLIER,2)
-                )
-            RadonValueBQ = struct.unpack("<H", self._command_data[6:8])[0]
-            device.sensors["radon_1month_level"] = round(float(RadonValueBQ),2)
-            if not self.is_metric:
-                device.sensors["radon_1month_level"] = (
-                    round(float(RadonValueBQ) * BQ_TO_PCI_MULTIPLIER,2)
-                )
-            RadonValueBQ = struct.unpack("<H", self._command_data[8:10])[0]
-            device.sensors["radon_C_now"] = int(RadonValueBQ)
-            RadonValueBQ = struct.unpack("<H", self._command_data[10:12])[0]
-            device.sensors["radon_C_last"] = int(RadonValueBQ)
+        if self._command_data is None:
+            self.logger.warn("Command data is None")
+        elif len(self._command_data) != 13 and len(self._command_data) != 14:
+            self.logger.warn("Unexpected data length %d", len(self._command_data))
         else:
-            device.sensors["radon"] = None
-            device.sensors["radon_1day_level"] = None
-            device.sensors["radon_1month_level"] = None
-            device.sensors["radon_C_now"] = None
-            device.sensors["radon_C_last"] = None
-        self._command_data = None
-        return device
-
-    @disconnect_on_missing_services
-    async def _get_radon_uptime(
-        self, client: BleakClient, device: MiraModeDevice
-    ) -> MiraModeDevice:
-
-        self._event = asyncio.Event()
-        try:
-            await client.start_notify(
-                RADON_CHARACTERISTIC_UUID_READ, self.notification_handler
-            )
-        except:
-            self.logger.warn("_get_radon_uptime Bleak error 1")
-
-        await client.write_gatt_char(RADON_CHARACTERISTIC_UUID_WRITE, b"\x51")
-
-        # Wait for up to fice seconds to see if a
-        # callback comes in.
-        try:
-            await asyncio.wait_for(self._event.wait(), 5)
-        except asyncio.TimeoutError:
-            self.logger.warn("Timeout getting command data.")
-        except:
-            self.logger.warn("_get_radon_uptime Bleak error 2")
-
-        await client.stop_notify(RADON_CHARACTERISTIC_UUID_READ)
-
-        if self._command_data is not None and len(self._command_data) == 16:
-
-            uptimeMinutes = struct.unpack("<I", self._command_data[4:8])[0]
-            #uptimeMillis = struct.unpack("<H", self._command_data[3:5])[0]
-            uptimeMillis = 0
-            device.sensors["radon_uptime"] = (
-                int(float(uptimeMinutes) * 60 + float(uptimeMillis) / 1000)
-            )
-            day = int (uptimeMinutes // 1440)
-            hours = int (uptimeMinutes % 1440) // 60
-            mins = int (uptimeMinutes % 1440) % 60
-            #sec = int(uptimeMillis / 1000)
-            sec = 0
-
-            device.sensors["radon_uptime_string"] = (
-                str(day) + "d " + str(hours).zfill(2) + ":" + str(mins).zfill(2) + ":" + str(sec).zfill(2)
-            )
-        else:
-            device.sensors["radon_uptime"] = None
-
-        self._command_data = None
-        return device
-
-    async def _get_radon_oldVersion(
-        self, client: BleakClient, device: MiraModeDevice
-    ) -> MiraModeDevice:
-
-        self._event = asyncio.Event()
-        await client.start_notify(
-            RADON_CHARACTERISTIC_UUID_READ_OLDVERSION, self.notification_handler
-        )
-        await client.write_gatt_char(
-            RADON_CHARACTERISTIC_UUID_WRITE_OLDVERSION, WRITE_VALUE
-        )
-
-        # Wait for up to five seconds to see if a
-        # callback comes in.
-        try:
-            await asyncio.wait_for(self._event.wait(), 5)
-        except asyncio.TimeoutError:
-            self.logger.warn("Timeout getting command data.")
-
-        await client.stop_notify(RADON_CHARACTERISTIC_UUID_READ_OLDVERSION)
-
-        if self._command_data is not None and len(self._command_data) >= 13:
-            RadonValuePCI = struct.unpack("<f", self._command_data[2:6])[0]
-            device.sensors["radon"] = round(float(RadonValuePCI),2)
-            if self.is_metric:
-                device.sensors["radon"] = round(float(RadonValuePCI) / BQ_TO_PCI_MULTIPLIER,2)
-
-            RadonValuePCI = struct.unpack("<f", self._command_data[6:10])[0]
-            device.sensors["radon_1day_level"] = round(float(RadonValuePCI),2)
-            if self.is_metric:
-                device.sensors["radon_1day_level"] = round(float(RadonValuePCI) / BQ_TO_PCI_MULTIPLIER,2)
-
-            RadonValuePCI = struct.unpack("<f", self._command_data[10:14])[0]
-            device.sensors["radon_1month_level"] = round(float(RadonValuePCI),2)
-            if self.is_metric:
-                device.sensors["radon_1month_level"] = round(float(RadonValuePCI) / BQ_TO_PCI_MULTIPLIER,2)
-
-        else:
-            device.sensors["radon"] = None
-            device.sensors["radon_1day_level"] = None
-            device.sensors["radon_1month_level"] = None
-
-        self._command_data = None
-        return device
-
-    async def _get_radon_peak_uptime_oldVersion(
-        self, client: BleakClient, device: MiraModeDevice
-    ) -> MiraModeDevice:
-
-        self._event = asyncio.Event()
-        await client.start_notify(
-            RADON_CHARACTERISTIC_UUID_READ_OLDVERSION, self.notification_handler
-        )
-        await client.write_gatt_char(
-            RADON_CHARACTERISTIC_UUID_WRITE_OLDVERSION, b"\x51"
-        )
-
-        # Wait for up to five seconds to see if a
-        # callback comes in.
-        try:
-            await asyncio.wait_for(self._event.wait(), 5)
-        except asyncio.TimeoutError:
-            self.logger.warn("Timeout getting command data.")
-
-        await client.stop_notify(RADON_CHARACTERISTIC_UUID_READ_OLDVERSION)
-
-        if self._command_data is not None and len(self._command_data) >= 13:
-            RadonValuePCI = struct.unpack("<f", self._command_data[12:16])[0]
-            device.sensors["radon_peak"] = round(float(RadonValuePCI),2)
-            if self.is_metric:
-                device.sensors["radon_peak"] = round(float(RadonValuePCI) / BQ_TO_PCI_MULTIPLIER,2)
-
-            uptimeMinutes = struct.unpack("<I", self._command_data[4:8])[0]
-            device.sensors["radon_uptime"] = (
-                int(uptimeMinutes) * 60
-            )
-            day = int (uptimeMinutes // 1440)
-            hours = int (uptimeMinutes % 1440) // 60
-            mins = int (uptimeMinutes % 1440) % 60
-            sec = 0
-
-            device.sensors["radon_uptime_string"] = (
-                str(day) + "d " + str(hours).zfill(2) + ":" + str(mins).zfill(2) + ":" + str(sec).zfill(2)
-            )
-        else:
-            device.sensors["radon_peak"] = None
-            device.sensors["radon_uptime"] = None
-            device.sensors["radon_uptime_string"] = None
-
-        self._command_data = None
-        return device
-
-    @disconnect_on_missing_services
-    async def _get_radon_peak(
-        self, client: BleakClient, device: MiraModeDevice
-    ) -> MiraModeDevice:
-
-        self._event = asyncio.Event()
-        try:
-            await client.start_notify(
-                RADON_CHARACTERISTIC_UUID_READ, self.notification_handler
-            )
-        except:
-            self.logger.warn("_get_radon_peak Bleak error 1")
-
-        await client.write_gatt_char(RADON_CHARACTERISTIC_UUID_WRITE, b"\x40")
-
-        # Wait for up to one second to see if a
-        # callback comes in.
-
-        try:
-            await asyncio.wait_for(self._event.wait(), 5)
-        except asyncio.TimeoutError:
-            self.logger.warn("Timeout getting command data.")
-        except:
-            self.logger.warn("_get_radon_peak Bleak error 2")
-
-        await client.stop_notify(RADON_CHARACTERISTIC_UUID_READ)
-
-        if self._command_data is not None and len(self._command_data) == 68:
-            RadonValueBQ = struct.unpack("<H", self._command_data[51:53])[0]
-            device.sensors["radon_peak"] = round(float(RadonValueBQ),2)
-            if not self.is_metric:
-                device.sensors["radon_peak"] = (
-                    round(float(RadonValueBQ) * BQ_TO_PCI_MULTIPLIER,2)
-                )
-                _LOGGER.debug(
-                    "New Radon Peak: " + str(float(RadonValueBQ) * BQ_TO_PCI_MULTIPLIER)
-                )
-            device.sw_version = self._command_data[22:30].decode('utf-8')
-            device.hw_version = self._command_data[16:21].decode('utf-8')
-        else:
-            device.sensors["radon_peak"] = None
-
+            # Missing first byte but still contains data so pad to length
+            if len(self._command_data) == 13:
+                b = bytearray(b'\x00')
+                self._command_data[0:0] = b
+            
+            device.sensors["temperature"] = round((self._command_data[6] + 268) / 10.4, 2)
+            device.sensors["shower"] = self._command_data[9] == 0x64
+            device.sensors["bath"] = self._command_data[10] == 0x64
+            self.logger.debug("Temperature: %s, Shower: %s, Bath: %s", device.sensors["temperature"], device.sensors["shower"], device.sensors["bath"])
+            
         self._command_data = None
         return device
 
@@ -355,16 +154,14 @@ class MiraModeBluetoothDeviceData:
 
         client = await establish_connection(BleakClient, ble_device, ble_device.address)
         device = MiraModeDevice()
+        
         device.name = ble_device.name
+        device.identifier = ble_device.name
         device.address = ble_device.address
+        device.client_id = self.client_id
+        device.device_id = self.device_id
 
-        if ble_device.name.startswith("FR:R2"):
-            device = await self._get_radon_oldVersion(client, device)
-            device = await self._get_radon_peak_uptime_oldVersion(client, device)
-        else:
-            device = await self._get_radon(client, device)
-            device = await self._get_radon_peak(client, device)
-            device = await self._get_radon_uptime(client, device)
+        device = await self._get_state(client, device)
 
         await client.disconnect()
 

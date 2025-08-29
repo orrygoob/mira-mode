@@ -6,7 +6,7 @@ import dataclasses
 import logging
 from typing import Any
 
-from .miraMode_ble import MiraModeBluetoothDeviceData, MiraModeDevice
+from .miramode import MiraModeBluetoothDeviceData, MiraModeDevice
 from bleak import BleakError
 import voluptuous as vol
 
@@ -35,8 +35,11 @@ class Discovery:
 
 def get_name(device: MiraModeDevice) -> str:
     """Generate name with identifier for device."""
-
-    return f"{device.name}"
+    
+    if device.name.startswith("Mira N86Sd: "):
+        return device.name.split(": ", 1)[1]
+    
+    return f"{device.name}"            
 
 
 class MiraModeDeviceUpdateError(Exception):
@@ -63,13 +66,10 @@ class MiraModeConfigFlow(ConfigFlow, domain=DOMAIN):
             _LOGGER.debug("no ble_device in _get_device_data")
             raise MiraModeDeviceUpdateError("No ble_device")
 
-        miraMode = MiraModeBluetoothDeviceData(_LOGGER)
+        miramode = MiraModeBluetoothDeviceData(_LOGGER)
 
         try:
-            data = await miraMode.update_device(ble_device)
-            data.name = discovery_info.advertisement.local_name
-            data.address = discovery_info.address
-            data.identifier = discovery_info.advertisement.local_name
+            data = await miramode.update_device(ble_device)
         except BleakError as err:
             _LOGGER.error(
                 "Error connecting to and getting data from %s: %s",
@@ -150,15 +150,7 @@ class MiraModeConfigFlow(ConfigFlow, domain=DOMAIN):
                 continue
 
             if not (
-                discovery_info.advertisement.local_name.startswith("FR:RU")
-                or discovery_info.advertisement.local_name.startswith("FR:RE")
-                or discovery_info.advertisement.local_name.startswith("FR:GI")
-                or discovery_info.advertisement.local_name.startswith("FR:H")
-                or discovery_info.advertisement.local_name.startswith("FR:R2")
-                or discovery_info.advertisement.local_name.startswith("FR:RD")
-                or discovery_info.advertisement.local_name.startswith("FR:GL")
-                or discovery_info.advertisement.local_name.startswith("FR:GJ")
-                or discovery_info.advertisement.local_name.startswith("FR:I")
+                discovery_info.advertisement.local_name.startswith("Mira")
             ):
                 continue
 

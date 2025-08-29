@@ -1,6 +1,6 @@
 """Constants for MiraMode BLE."""
 
-DOMAIN = "miraMode_ble"
+DOMAIN = "miramode"
 
 VOLUME_BECQUEREL = "Bq/m³"
 VOLUME_PICOCURIE = "pCi/L"

@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import timedelta
 import logging
 
-from .miraMode_ble import MiraModeBluetoothDeviceData, MiraModeDevice
+from .miramode import MiraModeBluetoothDeviceData, MiraModeDevice
 
 from homeassistant.components import bluetooth
 from homeassistant.config_entries import ConfigEntry
@@ -40,10 +40,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def _async_update_method() -> MiraModeDevice:
         """Get data from MiraMode BLE."""
         ble_device = bluetooth.async_ble_device_from_address(hass, address)
-        miraMode = MiraModeBluetoothDeviceData(_LOGGER, elevation, is_metric)
+        miramode = MiraModeBluetoothDeviceData(_LOGGER, elevation, is_metric)
 
         try:
-            data = await miraMode.update_device(ble_device)
+            data = await miramode.update_device(ble_device)
         except Exception as err:
             raise UpdateFailed(f"Unable to fetch data: {err}") from err
 

@@ -1,40 +1,17 @@
 {
-  "domain": "miraMode_ble",
-  "name": "MiraMode BLE",
+  "domain": "miramode",
+  "name": "Mira N86Sd",
   "bluetooth": [
     {
-      "local_name": "FR:RU*"
-    },
-    {
-      "local_name": "FR:RE*"
-    },
-    {
-      "local_name": "FR:GI*"
-    },
-    {
-      "local_name": "FR:H*"
-    },
-    {
-      "local_name": "FR:R2*"
-    },
-    {
-      "local_name": "FR:RD*"
-    },
-    {
-      "local_name": "FR:GL*"
-    },
-    {
-      "local_name": "FR:GJ*"
-    },
-    {
-      "local_name": "FR:I*"
+      "local_name": "Mira N86Sd: *",
+      "service_uuids": ["bccb0001-ca66-11e5-88a4-0002a5d5c51b"]
     }
   ],
-  "codeowners": ["@jdeath"],
+  "codeowners": ["@orrygoob"],
   "config_flow": true,
   "dependencies": ["bluetooth_adapters"],
-  "documentation": "https://www.github.com/jdeath/miraModev2",
+  "documentation": "https://www.github.com/jdeath/miramodev2",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/jdeath/miraModev2/issues",
+  "issue_tracker": "https://github.com/jdeath/miramodev2/issues",
   "version": "1.0"
 }
