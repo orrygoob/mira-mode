@@ -1,6 +1,6 @@
-"""Constants for RD200 BLE."""
+"""Constants for MiraMode BLE."""
 
-DOMAIN = "rd200_ble"
+DOMAIN = "miraMode_ble"
 
 VOLUME_BECQUEREL = "Bq/m³"
 VOLUME_PICOCURIE = "pCi/L"

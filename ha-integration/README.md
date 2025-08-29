@@ -1,11 +1,11 @@
-# rd200v2
-RadonEye RD200 (Version 2 and now Version 1) Integration for Homeasssistant. Throw me a github star if you use this!
+# miraModev2
+RadonEye MiraMode (Version 2 and now Version 1) Integration for Homeasssistant. Throw me a github star if you use this!
 
-[![Stargazers repo roster for @jdeath/rd200v2](https://git-lister.onrender.com/api/stars/jdeath/rd200v2?limit=20)](https://github.com/jdeath/rd200v2/stargazers)
+[![Stargazers repo roster for @jdeath/miraModev2](https://git-lister.onrender.com/api/stars/jdeath/miraModev2?limit=20)](https://github.com/jdeath/miraModev2/stargazers)
 
 Based on: https://github.com/EtoTen/radonreader/ and the AirThings BLE Homeassistant Integration (https://github.com/home-assistant/core/tree/dev/homeassistant/components/airthings_ble) and https://github.com/vincegio/airthings-ble, and the ESPHome Native Integration (https://esphome.io/components/sensor/radon_eye_ble.html)
 
-Works for RD200 Version 2 units with serial numbers starting with either FR:RU (United States) , FR:RE (Spain), FR:GI, FR:H, FR:GL, FR:I (??? all sold in the US), FR:RD and FR:GJ. Now works for version 1 (FR:R2 serial numbers). V1 integration currently only supports current radon value, 1 day and 1 month readings, peak and uptime. Note the box and the device display do not show the "FR:" portion of the serial number.
+Works for MiraMode Version 2 units with serial numbers starting with either FR:RU (United States) , FR:RE (Spain), FR:GI, FR:H, FR:GL, FR:I (??? all sold in the US), FR:RD and FR:GJ. Now works for version 1 (FR:R2 serial numbers). V1 integration currently only supports current radon value, 1 day and 1 month readings, peak and uptime. Note the box and the device display do not show the "FR:" portion of the serial number.
 
 If you are pretty sure it is a version 2 device, but has a differnet serial number prefix, edit the manifest.json and line 152 in config_flow.py to include you prefix. If it works, post an issue or a PR and I can add it in.
 
@@ -31,10 +31,10 @@ For VMWare: A user solved "regularly loosing-connection" on their Win10/Nuc runn
 - Install integration
 - Restart Homeassistant
 - Wait a few minutes and HA should find it automatically
-- If not found automatically, Go to Settings->Device and Services->Add Integration (blue button at bottom right) -> search for RD200
+- If not found automatically, Go to Settings->Device and Services->Add Integration (blue button at bottom right) -> search for MiraMode
 - It should find it and set it up
 
-Note: If used the ESPHome integration in the past, you must remove the RD200 MAC address from the `ble_client:` section. 
+Note: If used the ESPHome integration in the past, you must remove the MiraMode MAC address from the `ble_client:` section. 
 
 ### Pusle counter for V2 Devices (Thanks @farlight1)
 Now - Actual count pulses (note that this is a real time parameter and it is updated on the device when the ion chamber fires, as we read the device every 10 minutes in HA it may not make sense. Users who want to use this parameter should consider changing DEFAULT_SCAN_INTERVAL in const.py to 1min (60) or almost 2min (120).

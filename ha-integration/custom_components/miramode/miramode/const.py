@@ -1,3 +1,3 @@
-"""Constants for RD200 BLE parser"""
+"""Constants for MiraMode BLE parser"""
 
 BQ_TO_PCI_MULTIPLIER = 0.027

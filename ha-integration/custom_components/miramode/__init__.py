@@ -1,10 +1,10 @@
-"""The RD200 BLE integration."""
+"""The MiraMode BLE integration."""
 from __future__ import annotations
 
 from datetime import timedelta
 import logging
 
-from .rd200_ble import RD200BluetoothDeviceData, RD200Device
+from .miraMode_ble import MiraModeBluetoothDeviceData, MiraModeDevice
 
 from homeassistant.components import bluetooth
 from homeassistant.config_entries import ConfigEntry
@@ -23,7 +23,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up RD200 BLE device from a config entry."""
+    """Set up MiraMode BLE device from a config entry."""
     hass.data.setdefault(DOMAIN, {})
     address = entry.unique_id
 
@@ -35,15 +35,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     ble_device = bluetooth.async_ble_device_from_address(hass, address)
 
     if not ble_device:
-        raise ConfigEntryNotReady(f"Could not find RD200 device with address {address}")
+        raise ConfigEntryNotReady(f"Could not find MiraMode device with address {address}")
 
-    async def _async_update_method() -> RD200Device:
-        """Get data from RD200 BLE."""
+    async def _async_update_method() -> MiraModeDevice:
+        """Get data from MiraMode BLE."""
         ble_device = bluetooth.async_ble_device_from_address(hass, address)
-        rd200 = RD200BluetoothDeviceData(_LOGGER, elevation, is_metric)
+        miraMode = MiraModeBluetoothDeviceData(_LOGGER, elevation, is_metric)
 
         try:
-            data = await rd200.update_device(ble_device)
+            data = await miraMode.update_device(ble_device)
         except Exception as err:
             raise UpdateFailed(f"Unable to fetch data: {err}") from err
 

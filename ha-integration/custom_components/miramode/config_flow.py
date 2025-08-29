@@ -1,4 +1,4 @@
-"""Config flow for RD200 BlE integration."""
+"""Config flow for MiraMode BlE integration."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import dataclasses
 import logging
 from typing import Any
 
-from .rd200_ble import RD200BluetoothDeviceData, RD200Device
+from .miraMode_ble import MiraModeBluetoothDeviceData, MiraModeDevice
 from bleak import BleakError
 import voluptuous as vol
 
@@ -30,21 +30,21 @@ class Discovery:
 
     name: str
     discovery_info: BluetoothServiceInfo
-    device: RD200Device
+    device: MiraModeDevice
 
 
-def get_name(device: RD200Device) -> str:
+def get_name(device: MiraModeDevice) -> str:
     """Generate name with identifier for device."""
 
     return f"{device.name}"
 
 
-class RD200DeviceUpdateError(Exception):
+class MiraModeDeviceUpdateError(Exception):
     """Custom error class for device updates."""
 
 
-class RD200ConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for RD200 BLE."""
+class MiraModeConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for MiraMode BLE."""
 
     VERSION = 1
 
@@ -55,18 +55,18 @@ class RD200ConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def _get_device_data(
         self, discovery_info: BluetoothServiceInfo
-    ) -> RD200Device:
+    ) -> MiraModeDevice:
         ble_device = bluetooth.async_ble_device_from_address(
             self.hass, discovery_info.address
         )
         if ble_device is None:
             _LOGGER.debug("no ble_device in _get_device_data")
-            raise RD200DeviceUpdateError("No ble_device")
+            raise MiraModeDeviceUpdateError("No ble_device")
 
-        rd200 = RD200BluetoothDeviceData(_LOGGER)
+        miraMode = MiraModeBluetoothDeviceData(_LOGGER)
 
         try:
-            data = await rd200.update_device(ble_device)
+            data = await miraMode.update_device(ble_device)
             data.name = discovery_info.advertisement.local_name
             data.address = discovery_info.address
             data.identifier = discovery_info.advertisement.local_name
@@ -76,7 +76,7 @@ class RD200ConfigFlow(ConfigFlow, domain=DOMAIN):
                 discovery_info.address,
                 err,
             )
-            raise RD200DeviceUpdateError("Failed getting device data") from err
+            raise MiraModeDeviceUpdateError("Failed getting device data") from err
         except Exception as err:
             _LOGGER.error(
                 "Unknown error occurred from %s: %s", discovery_info.address, err
@@ -94,7 +94,7 @@ class RD200ConfigFlow(ConfigFlow, domain=DOMAIN):
 
         try:
             device = await self._get_device_data(discovery_info)
-        except RD200DeviceUpdateError:
+        except MiraModeDeviceUpdateError:
             return self.async_abort(reason="cannot_connect")
         except Exception:  # pylint: disable=broad-except
             return self.async_abort(reason="unknown")
@@ -163,19 +163,19 @@ class RD200ConfigFlow(ConfigFlow, domain=DOMAIN):
                 continue
 
             _LOGGER.debug("Found My Device")
-            _LOGGER.debug("RD2000 Discovery address: %s", address)
-            _LOGGER.debug("RD2000 Man Data: %s", discovery_info.manufacturer_data)
-            _LOGGER.debug("RD2000 advertisement: %s", discovery_info.advertisement)
-            _LOGGER.debug("RD2000 device: %s", discovery_info.device)
-            _LOGGER.debug("RD2000 service data: %s", discovery_info.service_data)
-            _LOGGER.debug("RD2000 service uuids: %s", discovery_info.service_uuids)
-            _LOGGER.debug("RD2000 rssi: %s", discovery_info.rssi)
+            _LOGGER.debug("MiraMode0 Discovery address: %s", address)
+            _LOGGER.debug("MiraMode0 Man Data: %s", discovery_info.manufacturer_data)
+            _LOGGER.debug("MiraMode0 advertisement: %s", discovery_info.advertisement)
+            _LOGGER.debug("MiraMode0 device: %s", discovery_info.device)
+            _LOGGER.debug("MiraMode0 service data: %s", discovery_info.service_data)
+            _LOGGER.debug("MiraMode0 service uuids: %s", discovery_info.service_uuids)
+            _LOGGER.debug("MiraMode0 rssi: %s", discovery_info.rssi)
             _LOGGER.debug(
-                "RD2000 advertisement: %s", discovery_info.advertisement.local_name
+                "MiraMode0 advertisement: %s", discovery_info.advertisement.local_name
             )
             try:
                 device = await self._get_device_data(discovery_info)
-            except RD200DeviceUpdateError:
+            except MiraModeDeviceUpdateError:
                 return self.async_abort(reason="cannot_connect")
             except Exception:  # pylint: disable=broad-except
                 return self.async_abort(reason="unknown")

@@ -1,8 +1,8 @@
-"""Parser for RD200 BLE advertisements."""
+"""Parser for MiraMode BLE advertisements."""
 from __future__ import annotations
 
-from .parser import RD200BluetoothDeviceData, RD200Device
+from .parser import MiraModeBluetoothDeviceData, MiraModeDevice
 
 __version__ = "0.5.3"
 
-__all__ = ["RD200BluetoothDeviceData", "RD200Device"]
+__all__ = ["MiraModeBluetoothDeviceData", "MiraModeDevice"]

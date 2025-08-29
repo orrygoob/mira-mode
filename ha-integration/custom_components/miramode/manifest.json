@@ -1,6 +1,6 @@
 {
-  "domain": "rd200_ble",
-  "name": "RD200 BLE",
+  "domain": "miraMode_ble",
+  "name": "MiraMode BLE",
   "bluetooth": [
     {
       "local_name": "FR:RU*"
@@ -33,8 +33,8 @@
   "codeowners": ["@jdeath"],
   "config_flow": true,
   "dependencies": ["bluetooth_adapters"],
-  "documentation": "https://www.github.com/jdeath/rd200v2",
+  "documentation": "https://www.github.com/jdeath/miraModev2",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/jdeath/rd200v2/issues",
+  "issue_tracker": "https://github.com/jdeath/miraModev2/issues",
   "version": "1.0"
 }

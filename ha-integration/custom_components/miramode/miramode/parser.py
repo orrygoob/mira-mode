@@ -1,4 +1,4 @@
-"""Parser for RD200 BLE devices"""
+"""Parser for MiraMode BLE devices"""
 
 from __future__ import annotations
 
@@ -40,8 +40,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass
-class RD200Device:
-    """Response data with information about the RD200 device"""
+class MiraModeDevice:
+    """Response data with information about the MiraMode device"""
 
     hw_version: str = ""
     sw_version: str = ""
@@ -55,8 +55,8 @@ class RD200Device:
 
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-branches
-class RD200BluetoothDeviceData:
-    """Data for RD200 BLE sensors."""
+class MiraModeBluetoothDeviceData:
+    """Data for MiraMode BLE sensors."""
 
     _event: asyncio.Event | None
     _command_data: bytearray | None
@@ -110,7 +110,7 @@ class RD200BluetoothDeviceData:
         return cast(WrapFuncType, _async_disconnect_on_missing_services_wrap)
 
     @disconnect_on_missing_services
-    async def _get_radon(self, client: BleakClient, device: RD200Device) -> RD200Device:
+    async def _get_radon(self, client: BleakClient, device: MiraModeDevice) -> MiraModeDevice:
 
         self._event = asyncio.Event()
         try:
@@ -166,8 +166,8 @@ class RD200BluetoothDeviceData:
 
     @disconnect_on_missing_services
     async def _get_radon_uptime(
-        self, client: BleakClient, device: RD200Device
-    ) -> RD200Device:
+        self, client: BleakClient, device: MiraModeDevice
+    ) -> MiraModeDevice:
 
         self._event = asyncio.Event()
         try:
@@ -214,8 +214,8 @@ class RD200BluetoothDeviceData:
         return device
 
     async def _get_radon_oldVersion(
-        self, client: BleakClient, device: RD200Device
-    ) -> RD200Device:
+        self, client: BleakClient, device: MiraModeDevice
+    ) -> MiraModeDevice:
 
         self._event = asyncio.Event()
         await client.start_notify(
@@ -259,8 +259,8 @@ class RD200BluetoothDeviceData:
         return device
 
     async def _get_radon_peak_uptime_oldVersion(
-        self, client: BleakClient, device: RD200Device
-    ) -> RD200Device:
+        self, client: BleakClient, device: MiraModeDevice
+    ) -> MiraModeDevice:
 
         self._event = asyncio.Event()
         await client.start_notify(
@@ -307,8 +307,8 @@ class RD200BluetoothDeviceData:
 
     @disconnect_on_missing_services
     async def _get_radon_peak(
-        self, client: BleakClient, device: RD200Device
-    ) -> RD200Device:
+        self, client: BleakClient, device: MiraModeDevice
+    ) -> MiraModeDevice:
 
         self._event = asyncio.Event()
         try:
@@ -350,11 +350,11 @@ class RD200BluetoothDeviceData:
         self._command_data = None
         return device
 
-    async def update_device(self, ble_device: BLEDevice) -> RD200Device:
+    async def update_device(self, ble_device: BLEDevice) -> MiraModeDevice:
         """Connects to the device through BLE and retrieves relevant data"""
 
         client = await establish_connection(BleakClient, ble_device, ble_device.address)
-        device = RD200Device()
+        device = MiraModeDevice()
         device.name = ble_device.name
         device.address = ble_device.address
 

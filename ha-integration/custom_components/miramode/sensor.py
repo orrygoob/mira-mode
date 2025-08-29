@@ -1,10 +1,10 @@
-"""Support for rd200 ble sensors."""
+"""Support for miraMode ble sensors."""
 from __future__ import annotations
 
 import logging
 import dataclasses
 
-from .rd200_ble import RD200Device
+from .miraMode_ble import MiraModeDevice
 
 from homeassistant import config_entries
 from homeassistant.components.sensor import (
@@ -119,10 +119,10 @@ async def async_setup_entry(
     entry: config_entries.ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the RD200 BLE sensors."""
+    """Set up the MiraMode BLE sensors."""
     is_metric = hass.config.units is METRIC_SYSTEM
 
-    coordinator: DataUpdateCoordinator[RD200Device] = hass.data[DOMAIN][entry.entry_id]
+    coordinator: DataUpdateCoordinator[MiraModeDevice] = hass.data[DOMAIN][entry.entry_id]
 
     # we need to change some units
     sensors_mapping = SENSORS_MAPPING_TEMPLATE.copy()
@@ -147,16 +147,16 @@ async def async_setup_entry(
             )
             continue
         entities.append(
-            RD200Sensor(coordinator, coordinator.data, sensors_mapping[sensor_type])
+            MiraModeSensor(coordinator, coordinator.data, sensors_mapping[sensor_type])
         )
 
     async_add_entities(entities)
 
 
-class RD200Sensor(CoordinatorEntity[DataUpdateCoordinator[RD200Device]], SensorEntity):
-    """RD200 BLE sensors for the device."""
+class MiraModeSensor(CoordinatorEntity[DataUpdateCoordinator[MiraModeDevice]], SensorEntity):
+    """MiraMode BLE sensors for the device."""
 
-    ## Setting the Device State to None fixes Uptime String, Appears to override line: https://github.com/Makr91/rd200v2/blob/3d87d6e005f5efb7c143ff32256153c517ccade9/custom_components/rd200_ble/sensor.py#L78
+    ## Setting the Device State to None fixes Uptime String, Appears to override line: https://github.com/Makr91/miraModev2/blob/3d87d6e005f5efb7c143ff32256153c517ccade9/custom_components/miraMode_ble/sensor.py#L78
     # Had to comment this line out to avoid it setting all state_class to none
     #_attr_state_class = None
     _attr_has_entity_name = True
@@ -164,30 +164,30 @@ class RD200Sensor(CoordinatorEntity[DataUpdateCoordinator[RD200Device]], SensorE
     def __init__(
         self,
         coordinator: DataUpdateCoordinator,
-        rd200_device: RD200Device,
+        miraMode_device: MiraModeDevice,
         entity_description: SensorEntityDescription,
     ) -> None:
-        """Populate the rd200 entity with relevant data."""
+        """Populate the miraMode entity with relevant data."""
         super().__init__(coordinator)
         self.entity_description = entity_description
 
-        name = f"{rd200_device.name} {rd200_device.identifier}"
+        name = f"{miraMode_device.name} {miraMode_device.identifier}"
 
         self._attr_unique_id = f"{name}_{entity_description.key}"
 
-        self._id = rd200_device.address
+        self._id = miraMode_device.address
         self._attr_device_info = DeviceInfo(
             connections={
                 (
                     CONNECTION_BLUETOOTH,
-                    rd200_device.address,
+                    miraMode_device.address,
                 )
             },
             name=name,
             manufacturer="FTLAB Co., LTD.",
-            model="RD200",
-            hw_version=rd200_device.hw_version,
-            sw_version=rd200_device.sw_version,
+            model="MiraMode",
+            hw_version=miraMode_device.hw_version,
+            sw_version=miraMode_device.sw_version,
         )
 
     @property
