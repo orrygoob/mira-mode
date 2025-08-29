@@ -1,5 +1,5 @@
 {
-  "name": "rd200v2",
+  "name": "miramode",
   "render_readme": true,
-  "homeassistant": "2022.12.1"
+  "homeassistant": "2025.9.0"
 }
