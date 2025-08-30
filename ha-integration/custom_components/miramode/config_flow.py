@@ -7,7 +7,8 @@ import logging
 from typing import Any
 
 from .miramode import MiraModeBluetoothDeviceData, MiraModeDevice
-from bleak import BleakError
+from bleak import BleakClient, BleakError
+from bleak_retry_connector import establish_connection
 import voluptuous as vol
 
 from homeassistant.components import bluetooth
@@ -21,25 +22,11 @@ from homeassistant.data_entry_flow import FlowResult
 
 from .const import DOMAIN
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)    
 
 
-@dataclasses.dataclass
-class Discovery:
-    """A discovered bluetooth device."""
-
-    name: str
-    discovery_info: BluetoothServiceInfo
-    device: MiraModeDevice
-
-
-def get_name(device: MiraModeDevice) -> str:
-    """Generate name with identifier for device."""
-    return f"{device.name}"         
-
-
-class MiraModeDeviceUpdateError(Exception):
-    """Custom error class for device updates."""
+class MiraModeConnectionError(Exception):
+    """Custom error class for device when failing to connect."""
 
 
 class MiraModeConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -49,57 +36,45 @@ class MiraModeConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         """Initialize the config flow."""
-        self._discovered_device: Discovery | None = None
-        self._discovered_devices: dict[str, Discovery] = {}
+        self._discovered_device: BluetoothServiceInfo | None = None
+        self._discovered_devices: dict[str, BluetoothServiceInfo] = {}
         self._pending_entry_title: str | None = None
         self._pending_entry_data: dict | None = None
 
-    async def _get_device_data(
-        self, discovery_info: BluetoothServiceInfo
-    ) -> MiraModeDevice:
-        ble_device = bluetooth.async_ble_device_from_address(
-            self.hass, discovery_info.address
-        )
+    async def _check_connection(self, bt_info: BluetoothServiceInfo) -> MiraModeDevice:
+        """Check connection to device."""
+        
+        ble_device = bluetooth.async_ble_device_from_address(self.hass, bt_info.address)
+        
         if ble_device is None:
             _LOGGER.debug("no ble_device in _get_device_data")
-            raise MiraModeDeviceUpdateError("No ble_device")
-
-        miramode = MiraModeBluetoothDeviceData(_LOGGER)
+            raise MiraModeConnectionError("No ble_device")
 
         try:
-            data = await miramode.update_device(ble_device)
+            client = await establish_connection(BleakClient, ble_device, ble_device.address)
+            await client.disconnect()
         except BleakError as err:
-            _LOGGER.error(
-                "Error connecting to and getting data from %s: %s",
-                discovery_info.address,
-                err,
-            )
-            raise MiraModeDeviceUpdateError("Failed getting device data") from err
+            _LOGGER.error("Error connecting to %s: %s", bt_info.address, err, )
+            raise MiraModeConnectionError("Failed connecting to device") from err
         except Exception as err:
-            _LOGGER.error(
-                "Unknown error occurred from %s: %s", discovery_info.address, err
-            )
+            _LOGGER.error("Unknown error occurred from %s: %s", bt_info.address, err)
             raise err
-        return data
 
-    async def async_step_bluetooth(
-        self, discovery_info: BluetoothServiceInfo
-    ) -> FlowResult:
+    async def async_step_bluetooth(self, bt_info: BluetoothServiceInfo) -> FlowResult:
         """Handle the bluetooth discovery step."""
-        _LOGGER.debug("Discovered BT device: %s", discovery_info)
-        await self.async_set_unique_id(discovery_info.address)
+        _LOGGER.debug("Discovered BT device: %s", bt_info)
+        await self.async_set_unique_id(bt_info.address)
         self._abort_if_unique_id_configured()
 
         try:
-            device = await self._get_device_data(discovery_info)
-        except MiraModeDeviceUpdateError:
+            await self._check_connection(bt_info)
+        except MiraModeConnectionError:
             return self.async_abort(reason="cannot_connect")
         except Exception:  # pylint: disable=broad-except
             return self.async_abort(reason="unknown")
 
-        name = get_name(device)
-        self.context["title_placeholders"] = {"name": name}
-        self._discovered_device = Discovery(name, discovery_info, device)
+        self.context["title_placeholders"] = {"name": bt_info.name}
+        self._discovered_device = bt_info
 
         return await self.async_step_bluetooth_confirm()
 
@@ -110,7 +85,7 @@ class MiraModeConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self._pending_entry_title = self.context["title_placeholders"]["name"]
             self._pending_entry_data = {
-                CONF_ADDRESS: self._discovered_device.discovery_info.address,
+                CONF_ADDRESS: self._discovered_device.address,
             }
             return await self.async_step_device_details()
 
@@ -138,31 +113,29 @@ class MiraModeConfigFlow(ConfigFlow, domain=DOMAIN):
 
         # Discover devices...
         current_addresses = self._async_current_ids()
-        for discovery_info in async_discovered_service_info(self.hass):
-            address = discovery_info.address
+        for bt_info in async_discovered_service_info(self.hass):
+            address = bt_info.address
             if address in current_addresses or address in self._discovered_devices:
                 continue
-            if discovery_info.advertisement.local_name is None:
+            if bt_info.name is None:
                 continue
-            if not discovery_info.advertisement.local_name.startswith("Mira"):
+            if not bt_info.name.startswith("Mira"):
                 continue
 
             try:
-                device = await self._get_device_data(discovery_info)
-            except MiraModeDeviceUpdateError:
+                await self._check_connection(bt_info)
+            except MiraModeConnectionError:
                 return self.async_abort(reason="cannot_connect")
             except Exception:
                 return self.async_abort(reason="unknown")
 
-            name = get_name(device)
-            self._discovered_devices[address] = Discovery(name, discovery_info, device)
+            self._discovered_devices[address] = bt_info
 
         if not self._discovered_devices:
             return self.async_abort(reason="no_devices_found")
 
         titles = {
-            address: get_name(discovery.device)
-            for (address, discovery) in self._discovered_devices.items()
+            address: discovery.name for (address, discovery) in self._discovered_devices.items()
         }
         return self.async_show_form(
             step_id="user",
