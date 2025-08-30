@@ -141,7 +141,7 @@ class MiraModeBluetoothDeviceData:
 
         if self._command_data is None:
             self.logger.warn("Command data is None")
-            # raise BleakNoResponse("No response from device - is the Device ID correct?")
+            raise BleakNoResponse("No response from device - is the Device ID correct?")
         elif len(self._command_data) != 13 and len(self._command_data) != 14:
             self.logger.warn("Unexpected data length %d", len(self._command_data))
             raise BleakIncompatibleProduct("Packets of the wrong length are being received - is this a MiraMode device?")
