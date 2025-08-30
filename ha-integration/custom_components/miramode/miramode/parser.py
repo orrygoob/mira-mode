@@ -26,6 +26,14 @@ class BleakCharacteristicMissing(BleakError):
 class BleakServiceMissing(BleakError):
     """Raised when a service is missing."""
 
+    
+class BleakNoResponse(BleakError):
+    """Raised when an incorrect device id has been input and no response was heard."""
+
+    
+class BleakIncompatibleProduct(BleakError):
+    """Raised when packets of the wrong length are being received."""
+
 MIRA_CHARACTERISTIC_UUID_READ = "bccb0003-ca66-11e5-88a4-0002a5d5c51b"
 MIRA_CHARACTERISTIC_UUID_WRITE = "bccb0002-ca66-11e5-88a4-0002a5d5c51b"
 
@@ -64,8 +72,8 @@ class MiraModeBluetoothDeviceData:
     def __init__(
         self,
         logger: Logger,
-        client_id: int = 32683,
-        device_id: int = 2,
+        client_id: int = 0, # only need to be set for control commands
+        device_id: int = 0, # leave as optional for config flow so we can check connection to device before IDs are set
     ):
         super().__init__()
         self.logger = logger
@@ -133,8 +141,10 @@ class MiraModeBluetoothDeviceData:
 
         if self._command_data is None:
             self.logger.warn("Command data is None")
+            # raise BleakNoResponse("No response from device - is the Device ID correct?")
         elif len(self._command_data) != 13 and len(self._command_data) != 14:
             self.logger.warn("Unexpected data length %d", len(self._command_data))
+            raise BleakIncompatibleProduct("Packets of the wrong length are being received - is this a MiraMode device?")
         else:
             # Missing first byte but still contains data so pad to length
             if len(self._command_data) == 13:
@@ -155,8 +165,12 @@ class MiraModeBluetoothDeviceData:
         client = await establish_connection(BleakClient, ble_device, ble_device.address)
         device = MiraModeDevice()
         
-        device.name = ble_device.name
-        device.identifier = ble_device.name
+        if ble_device.name.startswith("Mira N86Sd: "):
+            device.name = ble_device.name.split(": ", 1)[1]
+        else:
+            device.name = ble_device.name
+        
+        device.identifier = ble_device.address
         device.address = ble_device.address
         device.client_id = self.client_id
         device.device_id = self.device_id

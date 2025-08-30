@@ -35,11 +35,7 @@ class Discovery:
 
 def get_name(device: MiraModeDevice) -> str:
     """Generate name with identifier for device."""
-    
-    if device.name.startswith("Mira N86Sd: "):
-        return device.name.split(": ", 1)[1]
-    
-    return f"{device.name}"            
+    return f"{device.name}"         
 
 
 class MiraModeDeviceUpdateError(Exception):
@@ -55,6 +51,8 @@ class MiraModeConfigFlow(ConfigFlow, domain=DOMAIN):
         """Initialize the config flow."""
         self._discovered_device: Discovery | None = None
         self._discovered_devices: dict[str, Discovery] = {}
+        self._pending_entry_title: str | None = None
+        self._pending_entry_data: dict | None = None
 
     async def _get_device_data(
         self, discovery_info: BluetoothServiceInfo
@@ -110,9 +108,11 @@ class MiraModeConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Confirm discovery."""
         if user_input is not None:
-            return self.async_create_entry(
-                title=self.context["title_placeholders"]["name"], data={}
-            )
+            self._pending_entry_title = self.context["title_placeholders"]["name"]
+            self._pending_entry_data = {
+                CONF_ADDRESS: self._discovered_device.discovery_info.address,
+            }
+            return await self.async_step_device_details()
 
         self._set_confirm_only()
         return self.async_show_form(
@@ -130,47 +130,30 @@ class MiraModeConfigFlow(ConfigFlow, domain=DOMAIN):
             self._abort_if_unique_id_configured()
             discovery = self._discovered_devices[address]
 
-            self.context["title_placeholders"] = {
-                "name": discovery.name,
-            }
-
             self._discovered_device = discovery
+            self._pending_entry_title = discovery.name
+            self._pending_entry_data = {CONF_ADDRESS: address}
 
-            return self.async_create_entry(title=discovery.name, data={})
+            return await self.async_step_device_details()
 
+        # Discover devices...
         current_addresses = self._async_current_ids()
         for discovery_info in async_discovered_service_info(self.hass):
             address = discovery_info.address
             if address in current_addresses or address in self._discovered_devices:
                 continue
-
-            ##
-
             if discovery_info.advertisement.local_name is None:
                 continue
-
-            if not (
-                discovery_info.advertisement.local_name.startswith("Mira")
-            ):
+            if not discovery_info.advertisement.local_name.startswith("Mira"):
                 continue
 
-            _LOGGER.debug("Found My Device")
-            _LOGGER.debug("MiraMode0 Discovery address: %s", address)
-            _LOGGER.debug("MiraMode0 Man Data: %s", discovery_info.manufacturer_data)
-            _LOGGER.debug("MiraMode0 advertisement: %s", discovery_info.advertisement)
-            _LOGGER.debug("MiraMode0 device: %s", discovery_info.device)
-            _LOGGER.debug("MiraMode0 service data: %s", discovery_info.service_data)
-            _LOGGER.debug("MiraMode0 service uuids: %s", discovery_info.service_uuids)
-            _LOGGER.debug("MiraMode0 rssi: %s", discovery_info.rssi)
-            _LOGGER.debug(
-                "MiraMode0 advertisement: %s", discovery_info.advertisement.local_name
-            )
             try:
                 device = await self._get_device_data(discovery_info)
             except MiraModeDeviceUpdateError:
                 return self.async_abort(reason="cannot_connect")
-            except Exception:  # pylint: disable=broad-except
+            except Exception:
                 return self.async_abort(reason="unknown")
+
             name = get_name(device)
             self._discovered_devices[address] = Discovery(name, discovery_info, device)
 
@@ -183,9 +166,22 @@ class MiraModeConfigFlow(ConfigFlow, domain=DOMAIN):
         }
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_ADDRESS): vol.In(titles),
-                },
-            ),
+            data_schema=vol.Schema({vol.Required(CONF_ADDRESS): vol.In(titles)}),
         )
+
+    async def async_step_device_details(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Ask user for device_id and client_id."""
+        if user_input is not None:
+            # Merge pending data with entered values
+            data = {**self._pending_entry_data, **user_input}
+            return self.async_create_entry(title=self._pending_entry_title, data=data)
+
+        schema = vol.Schema(
+            {
+                vol.Required("device_id"): int,
+                vol.Required("client_id"): int,
+            }
+        )
+        return self.async_show_form(step_id="device_details", data_schema=schema)

@@ -25,11 +25,15 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up MiraMode BLE device from a config entry."""
     hass.data.setdefault(DOMAIN, {})
+    
     address = entry.unique_id
+    client_id = entry.data.get("client_id")
+    device_id = entry.data.get("device_id")
 
-    elevation = hass.config.elevation
-    is_metric = hass.config.units is METRIC_SYSTEM
     assert address is not None
+    assert client_id is not None
+    assert device_id is not None
+    
     await close_stale_connections_by_address(address)
     
     ble_device = bluetooth.async_ble_device_from_address(hass, address)
@@ -40,7 +44,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def _async_update_method() -> MiraModeDevice:
         """Get data from MiraMode BLE."""
         ble_device = bluetooth.async_ble_device_from_address(hass, address)
-        miramode = MiraModeBluetoothDeviceData(_LOGGER, elevation, is_metric)
+        miramode = MiraModeBluetoothDeviceData(_LOGGER, client_id, device_id)
 
         try:
             data = await miramode.update_device(ble_device)

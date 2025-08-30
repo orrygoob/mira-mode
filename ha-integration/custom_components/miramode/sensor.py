@@ -171,7 +171,7 @@ class MiraModeSensor(CoordinatorEntity[DataUpdateCoordinator[MiraModeDevice]], S
         super().__init__(coordinator)
         self.entity_description = entity_description
 
-        name = f"{miramode_device.name} {miramode_device.identifier}"
+        name = f"{miramode_device.name}"
 
         self._attr_unique_id = f"{name}_{entity_description.key}"
 
