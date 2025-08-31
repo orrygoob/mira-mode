@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import dataclasses
 
-from .miramode import MiraModeDevice
+from .miramode import MiraModeState
 
 from homeassistant import config_entries
 from homeassistant.components.sensor import (
@@ -72,15 +72,13 @@ class MiraModeTemperatureSensor(CoordinatorEntity[MiraModeCoordinator], SensorEn
             },
             name=name,
             manufacturer="Mira Showers",
-            model="Mira Mode",
-            hw_version=device.hw_version,
-            sw_version=device.sw_version,
+            model="Mira Mode"
         )
 
     @property
     def native_value(self) -> StateType:
         """Return the value reported by the sensor."""
         try:
-            return self.coordinator.data.sensors["temperature"]
+            return self.coordinator.data.temperature
         except KeyError:
             return None

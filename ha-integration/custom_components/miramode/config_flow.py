@@ -6,7 +6,7 @@ import dataclasses
 import logging
 from typing import Any
 
-from .miramode import MiraModeBluetoothAPI, MiraModeDevice
+from .miramode import MiraModeBluetoothAPI, MiraModeState
 from bleak import BleakClient, BleakError
 from bleak_retry_connector import establish_connection
 import voluptuous as vol
@@ -41,7 +41,7 @@ class MiraModeConfigFlow(ConfigFlow, domain=DOMAIN):
         self._pending_entry_title: str | None = None
         self._pending_entry_data: dict | None = None
 
-    async def _check_connection(self, bt_info: BluetoothServiceInfo) -> MiraModeDevice:
+    async def _check_connection(self, bt_info: BluetoothServiceInfo) -> MiraModeState:
         """Check connection to device."""
         
         ble_device = bluetooth.async_ble_device_from_address(self.hass, bt_info.address)
