@@ -6,6 +6,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.components import bluetooth
+from bleak_retry_connector import close_stale_connections_by_address
 
 from .const import DOMAIN
 from .coordinator import MiraModeCoordinator
@@ -25,6 +27,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     if address is None or client_id is None or device_id is None:
         raise ConfigEntryNotReady("Missing required device identifiers")
+
+    await close_stale_connections_by_address(address)
+    ble_device = bluetooth.async_ble_device_from_address(hass, address)
+
+    if not ble_device:
+        raise ConfigEntryNotReady(f"Could not find MiraMode device with address {address}")
 
     coordinator = MiraModeCoordinator(hass, address, client_id, device_id)
 

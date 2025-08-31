@@ -3,7 +3,6 @@ from datetime import timedelta
 
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.components import bluetooth
-from bleak_retry_connector import close_stale_connections_by_address
 
 from .miramode import MiraModeBluetoothAPI, MiraModeDevice
 from .const import DOMAIN, DEFAULT_SCAN_INTERVAL
@@ -36,7 +35,6 @@ class MiraModeCoordinator(DataUpdateCoordinator[MiraModeDevice]):
 
     async def _async_update_data(self) -> MiraModeDevice:
         """Fetch latest data from Mira Mode device."""
-        await close_stale_connections_by_address(self.address)
         ble_device = bluetooth.async_ble_device_from_address(self.hass, self.address)
 
         if not ble_device:
