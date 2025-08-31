@@ -63,7 +63,7 @@ class MiraModeDevice:
 
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-branches
-class MiraModeBluetoothDeviceData:
+class MiraModeBluetoothAPI:
     """Data for MiraMode BLE sensors."""
 
     _event: asyncio.Event | None

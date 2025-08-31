@@ -6,7 +6,7 @@ import dataclasses
 import logging
 from typing import Any
 
-from .miramode import MiraModeBluetoothDeviceData, MiraModeDevice
+from .miramode import MiraModeBluetoothAPI, MiraModeDevice
 from bleak import BleakClient, BleakError
 from bleak_retry_connector import establish_connection
 import voluptuous as vol

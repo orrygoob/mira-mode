@@ -18,7 +18,8 @@ from homeassistant.helpers.device_registry import CONNECTION_BLUETOOTH
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
-from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from .coordinator import MiraModeCoordinator
 
 from .const import DOMAIN
 
@@ -31,13 +32,14 @@ async def async_setup_entry(
 ) -> None:
     """Set up the MiraMode BLE sensors."""
 
-    coordinator: DataUpdateCoordinator[MiraModeDevice] = hass.data[DOMAIN][entry.entry_id]
+    coordinator: MiraModeCoordinator = hass.data[DOMAIN][entry.entry_id]
+    
 
     entities = [MiraModeTemperatureSensor(coordinator)]
     async_add_entities(entities)
 
 
-class MiraModeTemperatureSensor(CoordinatorEntity[DataUpdateCoordinator[MiraModeDevice]], SensorEntity):
+class MiraModeTemperatureSensor(CoordinatorEntity[MiraModeCoordinator], SensorEntity):
     """MiraMode BLE sensors for the device."""
 
     _attr_has_entity_name = True
