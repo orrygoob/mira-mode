@@ -46,6 +46,11 @@ class MiraModeValve(CoordinatorEntity[MiraModeCoordinator], ValveEntity):
         self._attr_name = name
         self._attr_unique_id = f"{device.address}_{valve_type}_valve"
         self._id = device.address
+        
+        if valve_type == "shower":
+            self._attr_icon = "mdi:shower-head"
+        else:
+            self._attr_icon = "mdi:bathtub"
 
         self._attr_device_info = DeviceInfo(
             connections={(CONNECTION_BLUETOOTH, device.address)},
