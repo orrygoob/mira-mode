@@ -30,7 +30,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class MiraModeValve(CoordinatorEntity, ValveEntity):
+class MiraModeValve(CoordinatorEntity[MiraModeCoordinator], ValveEntity):
     """Valve entity for Mira Mode (shower or bath)."""
 
     _attr_device_class = ValveDeviceClass.WATER

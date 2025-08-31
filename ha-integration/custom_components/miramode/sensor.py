@@ -1,4 +1,7 @@
 """Support for miramode ble sensors."""
+
+# DEPRECATED - use water_heater.py instead as you get control over temperature too
+
 from __future__ import annotations
 
 import logging

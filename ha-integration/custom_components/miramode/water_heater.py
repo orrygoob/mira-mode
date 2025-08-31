@@ -37,7 +37,7 @@ async def async_setup_entry(
     entities = [MiraModeWaterHeater(coordinator)]
     async_add_entities(entities)
     
-class MiraModeWaterHeater(CoordinatorEntity, WaterHeaterEntity):
+class MiraModeWaterHeater(CoordinatorEntity[MiraModeCoordinator], WaterHeaterEntity):
     """Water Heater entity for Mira Mode device."""
 
     _attr_supported_features = WaterHeaterEntityFeature.TARGET_TEMPERATURE
