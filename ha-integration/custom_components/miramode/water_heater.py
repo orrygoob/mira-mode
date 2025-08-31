@@ -44,7 +44,7 @@ class MiraModeWaterHeater(CoordinatorEntity, WaterHeaterEntity):
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_min_temp = 25
     _attr_max_temp = 50
-    _attr_name = "Mira Mode Water Heater"
+    _attr_name = "temperature"
     _attr_has_entity_name = True
 
     def __init__(
