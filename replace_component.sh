@@ -1,4 +1,5 @@
 #!/bin/bash
+# used during development to copy the latest version of the custom component to HA config folder
 
 TARGET_DIR="/Users/orrygooberman/Desktop/ha-core/config/custom_components/miramode"
 SOURCE_DIR="/Users/orrygooberman/Documents/Projects/bath hacking stuff/mira-mode/ha-integration/custom_components/miramode"
