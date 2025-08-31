@@ -61,5 +61,6 @@ payl = bytearray([
 
 This work would not have been possible without the following work:
 - https://github.com/alexpilotti/python-miramode - for the original reverse engineering of the protocol
+- https://github.com/kingal123/python-miramode - for more explanation of how to obtain the device and client ids
 - https://github.com/nhannam/shower-controller-documentation - documentation on the protocol (which I only discovered after writing this integration :/)
 - https://github.com/jdeath/rd200v2 - used as a template BLE device integration that I could adapt and build upon
