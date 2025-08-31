@@ -10,8 +10,8 @@
   "codeowners": ["@orrygoob"],
   "config_flow": true,
   "dependencies": ["bluetooth_adapters"],
-  "documentation": "https://www.github.com/jdeath/miramodev2",
+  "documentation": "https://github.com/orrygoob/mira-mode",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/jdeath/miramodev2/issues",
+  "issue_tracker": "https://github.com/orrygoob/mira-mode/issues",
   "version": "1.0"
 }
