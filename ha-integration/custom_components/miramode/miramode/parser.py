@@ -141,7 +141,6 @@ class MiraModeBluetoothAPI:
 
     @disconnect_on_missing_services
     async def _get_state(self, client: BleakClient):
-        _LOGGER.error("Getting state")
         self._event = asyncio.Event()
         try:
             await client.start_notify(
@@ -184,7 +183,6 @@ class MiraModeBluetoothAPI:
     
     @disconnect_on_missing_services
     async def _push_state(self, client: BleakClient):
-        _LOGGER.error("Pushing state")
         # Extract from sensors dict
         temperature = int(max(0, min(255, round(self.state.temperature * 10.4 - 268))))
         shower = 0x64 if self.state.shower else 0

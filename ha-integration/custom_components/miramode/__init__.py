@@ -12,7 +12,7 @@ from bleak_retry_connector import close_stale_connections_by_address
 from .const import DOMAIN
 from .coordinator import MiraModeCoordinator
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.WATER_HEATER]
 
 _LOGGER = logging.getLogger(__name__)
 
