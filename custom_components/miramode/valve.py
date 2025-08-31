@@ -57,7 +57,6 @@ class MiraModeValve(CoordinatorEntity[MiraModeCoordinator], ValveEntity):
     @property
     def is_closed(self) -> str:
         data = self.coordinator.data
-        _LOGGER.error(f"Valve state data: {data}")  # Debug log
         if data is None:
             return None  # unknown
         if self._valve_type == "shower":
@@ -68,7 +67,6 @@ class MiraModeValve(CoordinatorEntity[MiraModeCoordinator], ValveEntity):
     @property
     def is_open(self) -> str:
         data = self.coordinator.data
-        _LOGGER.error(f"Valve state data: {data}")  # Debug log
         if data is None:
             return None  # unknown
         if self._valve_type == "shower":
