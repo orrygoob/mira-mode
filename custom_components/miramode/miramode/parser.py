@@ -81,7 +81,10 @@ class MiraModeBluetoothAPI:
         
         self._command_data = None
         self._event = None
-        self._lock = asyncio.Lock()  # <-- ensure sequential execution
+        self._queue_lock = asyncio.Lock()
+        self._client_lock = asyncio.Lock()
+        self._client: BleakClient | None = None
+        self._queued_users = 0
 
         self.state = MiraModeState()
         self.state.address = address
@@ -181,6 +184,8 @@ class MiraModeBluetoothAPI:
             self.logger.debug("Temperature: %s, Shower: %s, Bath: %s", self.state.temperature, self.state.shower, self.state.bath)
             
         self._command_data = None
+        
+        return self.state
     
     @disconnect_on_missing_services
     async def _push_state(self, client: BleakClient):
@@ -215,81 +220,74 @@ class MiraModeBluetoothAPI:
         payload = payload + struct.pack(">H", crc)
 
         await client.write_gatt_char(MIRA_CHARACTERISTIC_UUID_WRITE, payload)
+        
+        return self.state
 
+    async def _with_client(self, func: Callable[[BleakClient], Any]) -> Any:
+        """Helper to wrap all BLE calls with shared connection handling."""
+        """Keeps track of threads waiting to acquire lock so knows whether to reuse connection or not."""
+        
+        # increment queued users
+        async with self._queue_lock:
+            self._queued_users += 1
+            
+        async with self._client_lock:
+            # decrement queued users
+            async with self._queue_lock:
+                self._queued_users -= 1
+                
+            # establish connection if needed
+            if self._client is None or not self._client.is_connected:
+                ble_device = self._get_device()
+                self._client = await establish_connection(BleakClient, ble_device, ble_device.address)
+            
+            # perform the operation
+            try:
+                return await func(self._client)
+            finally:
+                # release the connection if no one else is queuing
+                async with self._queue_lock:
+                    if self._queued_users == 0 and self._client:
+                        await self._client.disconnect()
+                        self._client = None
+                
     async def update_state(self) -> MiraModeState:
-        """Connects to the device through BLE and retrieves relevant data"""
-        async with self._lock:  # <-- lock here
-            ble_device = self._get_device()
-            client = await establish_connection(BleakClient, ble_device, ble_device.address)
-
-            await self._get_state(client)
-
-            await client.disconnect()
-
-            return self.state
+        """Retrieve device state."""
+        return await self._with_client(self._get_state)
 
     async def push_state(self) -> MiraModeState:
-        """Connects to the device through BLE and sends relevant data"""
-        async with self._lock:  # <-- lock here
-            ble_device = self._get_device()
-            client = await establish_connection(BleakClient, ble_device, ble_device.address)
-
-            await self._push_state(client)
-
-            await client.disconnect()
-
-            return self.state
+        """Send device state."""
+        return await self._with_client(self._push_state)
 
     async def set_temperature(self, temperature: float) -> MiraModeState:
-        """Connects to the device through BLE and sets the temperature"""
-        async with self._lock:  # <-- lock here
-            ble_device = self._get_device()
-            client = await establish_connection(BleakClient, ble_device, ble_device.address)
-
+        """Set the temperature."""
+        async def _do(client: BleakClient):
             await self._get_state(client)
-
             self.state.temperature = temperature
-
             await self._push_state(client)
-
             await self._get_state(client)
-
-            await client.disconnect()
-
             return self.state
+        
+        return await self._with_client(_do)
 
     async def set_shower(self, shower: bool) -> MiraModeState:
-        """Connects to the device through BLE and sets shower mode"""
-        async with self._lock:  # <-- lock here
-            ble_device = self._get_device()
-            client = await establish_connection(BleakClient, ble_device, ble_device.address)
-
+        """Set shower mode."""
+        async def _do(client: BleakClient):
             await self._get_state(client)
-
             self.state.shower = shower
-
             await self._push_state(client)
-
             await self._get_state(client)
-
-            await client.disconnect()
-
             return self.state
+        
+        return await self._with_client(_do)
 
     async def set_bath(self, bath: bool) -> MiraModeState:
-        """Connects to the device through BLE and sets bath mode"""
-        async with self._lock:  # <-- lock here
-            ble_device = self._get_device()
-            client = await establish_connection(BleakClient, ble_device, ble_device.address)
-
+        """Set bath mode."""
+        async def _do(client: BleakClient):
             await self._get_state(client)
-
             self.state.bath = bath
-
             await self._push_state(client)
-
             await self._get_state(client)
-
-            await client.disconnect()
-
             return self.state
+        
+        return await self._with_client(_do)
