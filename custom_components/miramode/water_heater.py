@@ -10,6 +10,7 @@ from homeassistant import config_entries
 from homeassistant.components.water_heater import (
     WaterHeaterEntity,
     WaterHeaterEntityFeature,
+    STATE_ELECTRIC
 )
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
@@ -41,6 +42,8 @@ class MiraModeWaterHeater(CoordinatorEntity[MiraModeCoordinator], WaterHeaterEnt
     """Water Heater entity for Mira Mode device."""
 
     _attr_supported_features = WaterHeaterEntityFeature.TARGET_TEMPERATURE
+    _attr_operation_list = [STATE_ELECTRIC]
+    _attr_current_operation = STATE_ELECTRIC
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_min_temp = 25
     _attr_max_temp = 50
