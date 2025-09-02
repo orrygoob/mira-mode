@@ -81,7 +81,8 @@ class MiraModeBluetoothAPI:
         
         self._command_data = None
         self._event = None
-        
+        self._lock = asyncio.Lock()  # <-- ensure sequential execution
+
         self.state = MiraModeState()
         self.state.address = address
         self.state.client_id = client_id
@@ -217,78 +218,78 @@ class MiraModeBluetoothAPI:
 
     async def update_state(self) -> MiraModeState:
         """Connects to the device through BLE and retrieves relevant data"""
+        async with self._lock:  # <-- lock here
+            ble_device = self._get_device()
+            client = await establish_connection(BleakClient, ble_device, ble_device.address)
 
-        ble_device = self._get_device()
-        client = await establish_connection(BleakClient, ble_device, ble_device.address)
+            await self._get_state(client)
 
-        await self._get_state(client)
+            await client.disconnect()
 
-        await client.disconnect()
+            return self.state
 
-        return self.state
-    
     async def push_state(self) -> MiraModeState:
         """Connects to the device through BLE and sends relevant data"""
+        async with self._lock:  # <-- lock here
+            ble_device = self._get_device()
+            client = await establish_connection(BleakClient, ble_device, ble_device.address)
 
-        ble_device = self._get_device()
-        client = await establish_connection(BleakClient, ble_device, ble_device.address)
+            await self._push_state(client)
 
-        await self._push_state(client)
+            await client.disconnect()
 
-        await client.disconnect()
+            return self.state
 
-        return self.state
-    
     async def set_temperature(self, temperature: float) -> MiraModeState:
         """Connects to the device through BLE and sets the temperature"""
+        async with self._lock:  # <-- lock here
+            ble_device = self._get_device()
+            client = await establish_connection(BleakClient, ble_device, ble_device.address)
 
-        ble_device = self._get_device()
-        client = await establish_connection(BleakClient, ble_device, ble_device.address)
-        
-        await self._get_state(client)
-        
-        self.state.temperature = temperature
-        
-        await self._push_state(client)
-        
-        await self._get_state(client)
-        
-        await client.disconnect()
+            await self._get_state(client)
 
-        return self.state
-    
+            self.state.temperature = temperature
+
+            await self._push_state(client)
+
+            await self._get_state(client)
+
+            await client.disconnect()
+
+            return self.state
+
     async def set_shower(self, shower: bool) -> MiraModeState:
-        """Connects to the device through BLE and sets the temperature"""
+        """Connects to the device through BLE and sets shower mode"""
+        async with self._lock:  # <-- lock here
+            ble_device = self._get_device()
+            client = await establish_connection(BleakClient, ble_device, ble_device.address)
 
-        ble_device = self._get_device()
-        client = await establish_connection(BleakClient, ble_device, ble_device.address)
-        
-        await self._get_state(client)
-        
-        self.state.shower = shower
-        
-        await self._push_state(client)
-        
-        await self._get_state(client)
-        
-        await client.disconnect()
+            await self._get_state(client)
 
-        return self.state
+            self.state.shower = shower
+
+            await self._push_state(client)
+
+            await self._get_state(client)
+
+            await client.disconnect()
+
+            return self.state
 
     async def set_bath(self, bath: bool) -> MiraModeState:
-        """Connects to the device through BLE and sets the temperature"""
+        """Connects to the device through BLE and sets bath mode"""
+        async with self._lock:  # <-- lock here
+            ble_device = self._get_device()
+            client = await establish_connection(BleakClient, ble_device, ble_device.address)
 
-        ble_device = self._get_device()
-        client = await establish_connection(BleakClient, ble_device, ble_device.address)
-        
-        await self._get_state(client)
-        
-        self.state.bath = bath
-        
-        await self._push_state(client)
-        
-        await self._get_state(client)
-        
-        await client.disconnect()
+            await self._get_state(client)
 
-        return self.state
+            self.state.bath = bath
+
+            await self._push_state(client)
+
+            await self._get_state(client)
+
+            await client.disconnect()
+
+            return self.state
